@@ -1287,6 +1287,7 @@ nif_code_test_() ->
          {"Nif enums in msgs", fun nif_enum_in_msg/0},
          {"Nif enums with pkgs", fun nif_enum_with_pkgs/0},
          {"Nif with strbin", fun nif_with_strbin/0},
+         {"Nif with booleans", fun nif_with_booleans/0},
          {"Nif and +-Inf/NaN", fun nif_with_non_normal_floats/0},
          {"Error if both Any translations and nif",
           fun error_if_both_any_translations_and_nif/0}])).
@@ -1562,6 +1563,31 @@ nif_with_strbin() ->
                         ?assertEqual(OrigMsgB, MMDecoded),
                         ?assertEqual(OrigMsgS, GMDecoded),
                         ?assertEqual(OrigMsgB, MGDecoded)
+                end)
+      end).
+
+nif_with_booleans() ->
+    with_tmpdir(
+      fun(TmpDir) ->
+              M = gpb_nif_with_booleans,
+              DefsTxt = lf_lines(["message ntest3 {",
+                                  "    required bool b = 1;",
+                                  "}"]),
+              Defs = parse_to_proto_defs(DefsTxt),
+              {ok, Code} = compile_nif_msg_defs(M, DefsTxt, TmpDir, []),
+              in_separate_vm(
+                TmpDir, M, Code,
+                fun() ->
+                        OrigMsgAtom = {ntest3,true},
+                        OrigMsgInt = {ntest3,1},
+                        MEncoded  = M:encode_msg(OrigMsgAtom),
+                        GEncoded  = gpb:encode_msg(OrigMsgAtom, Defs),
+                        MMDecoded = M:decode_msg(MEncoded, ntest3),
+                        GMDecoded = gpb:decode_msg(MEncoded, ntest3, Defs),
+                        MGDecoded = M:decode_msg(GEncoded, ntest3),
+                        ?assertEqual(OrigMsgAtom, MMDecoded),
+                        ?assertEqual(OrigMsgInt, GMDecoded),
+                        ?assertEqual(OrigMsgAtom, MGDecoded)
                 end)
       end).
 
