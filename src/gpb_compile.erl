@@ -1753,10 +1753,10 @@ format_erl(Mod, Defs, #anres{maps_as_msgs=MapsAsMsgs}=AnRes, Opts) ->
        end,
        "\n",
        case get_records_or_maps_by_opts(Opts) of
-           records -> ?f("-export([encode_msg/1, encode_msg/2]).~n");
-           maps    -> ?f("-export([encode_msg/2, encode_msg/3]).~n")
+           records -> ?f("-export([encode/1, encode_msg/1, encode_msg/2]).~n");
+           maps    -> ?f("-export([encode/1, encode_msg/2, encode_msg/3]).~n")
        end,
-       ?f("-export([decode_msg/2"),[", decode_msg/3" || NoNif], ?f("]).~n"),
+       ?f("-export([decode/2, decode_msg/2"),[", decode_msg/3" || NoNif], ?f("]).~n"),
        case get_records_or_maps_by_opts(Opts) of
            records -> ?f("-export([merge_msgs/2, merge_msgs/3]).~n");
            maps    -> ?f("-export([merge_msgs/3, merge_msgs/4]).~n")
@@ -1820,6 +1820,9 @@ format_erl(Mod, Defs, #anres{maps_as_msgs=MapsAsMsgs}=AnRes, Opts) ->
        %% to about 10000 msgs/s for a set of mixed message samples.
        %% f("-compile(inline).~n"),
        %%
+       %% Add epb compatibility function
+       ?f("-spec encode(_) -> no_return().~n"),
+       ?f("encode(Msg) -> encode_msg(Msg, []).~n"),
        format_encoders_top_function(Defs, Opts),
        "\n",
        if DoNif ->
@@ -1831,6 +1834,9 @@ format_erl(Mod, Defs, #anres{maps_as_msgs=MapsAsMsgs}=AnRes, Opts) ->
                 ?f("~s~n", [format_aux_encoders(Defs, AnRes, Opts)])]
        end,
        "\n",
+       %% Add epb compatibility function
+       ?f("-spec decode(atom(), binary()) -> no_return().\n"),
+       ?f("decode(MsgName, Bin) when is_atom(MsgName), is_binary(Bin) -> decode_msg(Bin, MsgName).~n"),
        format_decoders_top_function(Defs, Opts),
        "\n\n",
        if DoNif ->
