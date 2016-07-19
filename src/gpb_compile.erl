@@ -2540,7 +2540,9 @@ format_bool_encoder() ->
     gpb_codegen:format_fn(
       e_type_bool,
       fun(true, Bin)  -> <<Bin/binary, 1>>;
-         (false, Bin) -> <<Bin/binary, 0>>
+         (false, Bin) -> <<Bin/binary, 0>>;
+         (1, Bin) -> <<Bin/binary, 1>>;
+         (0, Bin) -> <<Bin/binary, 0>>
       end).
 
 format_fixed_encoder(Type, BitLen, BitType) ->
@@ -4562,6 +4564,8 @@ format_bool_verifier() ->
        FnName,
        fun(false, _Path) -> ok;
           (true, _Path)  -> ok;
+          (0, _Path)  -> ok;
+          (1, _Path)  -> ok;
           (X, Path) -> mk_type_error(bad_boolean_value, X, Path)
        end)].
 
@@ -5702,7 +5706,7 @@ type_to_typestr_2(int32, _Defs, _Opts)    -> "integer()";
 type_to_typestr_2(int64, _Defs, _Opts)    -> "integer()";
 type_to_typestr_2(uint32, _Defs, _Opts)   -> "non_neg_integer()";
 type_to_typestr_2(uint64, _Defs, _Opts)   -> "non_neg_integer()";
-type_to_typestr_2(bool, _Defs, _Opts)     -> "boolean()";
+type_to_typestr_2(bool, _Defs, _Opts)     -> "boolean() | 0 | 1";
 type_to_typestr_2(fixed32, _Defs, _Opts)  -> "non_neg_integer()";
 type_to_typestr_2(fixed64, _Defs, _Opts)  -> "non_neg_integer()";
 type_to_typestr_2(sfixed32, _Defs, _Opts) -> "integer()";
@@ -6610,10 +6614,12 @@ format_nif_cc_field_packer_single(SrcVar, MsgVar, Field, Defs, Opts, Setter) ->
                ?f("{\n"
                   "    if (enif_is_identical(~s, gpb_aa_true))\n"
                   "        ~s\n"
+                  "    else if (enif_is_identical(~s, 1))\n"
+                  "        ~s\n"
                   "    else\n"
                   "        ~s\n"
                   "}\n",
-                  [SrcVar, SetFn(["1"]), SetFn(["0"])]);
+                  [SrcVar, SetFn(["1"]), SrcVar, SetFn(["1"]), SetFn(["0"])]);
            {enum, EnumName} ->
                EPrefix = case is_dotted(EnumName) of
                              false -> "";
