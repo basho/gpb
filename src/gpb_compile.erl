@@ -1821,7 +1821,7 @@ format_erl(Mod, Defs, #anres{maps_as_msgs=MapsAsMsgs}=AnRes, Opts) ->
        %% f("-compile(inline).~n"),
        %%
        %% Add epb compatibility function
-       ?f("-spec encode(_) -> no_return().~n"),
+       ?f("-spec encode(_) -> binary().~n"),
        ?f("encode(Msg) -> encode_msg(Msg, []).~n"),
        format_encoders_top_function(Defs, Opts),
        "\n",
@@ -1938,11 +1938,13 @@ format_encoders_top_function_msgs(Defs, Opts) ->
                       maps    -> [?expr(MsgName)]
                   end,
     DoNif = proplists:get_bool(nif, Opts),
-    [gpb_codegen:format_fn(
+    [?f("-spec encode_msg(_) -> binary().~n"),
+     gpb_codegen:format_fn(
        encode_msg,
        fun(Msg, '<MsgName>') -> encode_msg(Msg, '<MsgName>', []) end,
        [splice_trees('<MsgName>', MsgNameVars)]),
      "\n",
+     ?f("-spec encode_msg(_, []) -> binary().~n"),
      gpb_codegen:format_fn(
        encode_msg,
        fun(Msg, '<MsgName>', '<Opts>') ->
